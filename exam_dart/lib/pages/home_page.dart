@@ -38,6 +38,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   void addOrder() {
+    if (itemController.text.isEmpty || nameController.text.isEmpty) return;
+
     final newOrder = Order(
       item: itemController.text,
       itemName: nameController.text,
@@ -56,6 +58,10 @@ class _HomePageState extends State<HomePage> {
     priceController.clear();
     currencyController.clear();
     quantityController.clear();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Order added successfully!')),
+    );
   }
 
   void searchOrders(String query) {
@@ -67,12 +73,49 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  void deleteOrder(Order order) {
+    setState(() {
+      orders.remove(order);
+      filteredOrders = List.from(orders);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${order.itemName} deleted')),
+    );
+  }
+
   Widget buildOrderCard(Order order) {
     return Card(
+      elevation: 4,
+      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
-        title: Text(order.itemName),
+        title: Text(
+          order.itemName,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         subtitle: Text(
-            '${order.item} - ${order.currency} ${order.price} x ${order.quantity}'),
+          '${order.item} • ${order.currency} ${order.price} • Qty: ${order.quantity}',
+        ),
+        trailing: IconButton(
+          icon: const Icon(Icons.delete, color: Colors.redAccent),
+          onPressed: () => deleteOrder(order),
+        ),
+      ),
+    );
+  }
+
+  Widget buildInputField(String label, TextEditingController controller,
+      {TextInputType keyboardType = TextInputType.text}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        ),
       ),
     );
   }
@@ -80,30 +123,42 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Order List')),
-      body: Padding(
-        padding: const EdgeInsets.all(10.0),
+      appBar: AppBar(title: const Text('📦 Order Management')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(12),
         child: Column(
           children: [
             TextField(
               controller: searchController,
-              decoration: const InputDecoration(labelText: 'Search by ItemName'),
+              decoration: const InputDecoration(
+                labelText: '🔍 Search by ItemName',
+                border: OutlineInputBorder(),
+              ),
               onChanged: searchOrders,
             ),
-            const SizedBox(height: 10),
-            Expanded(
-              child: ListView(
-                children: filteredOrders.map(buildOrderCard).toList(),
+            const SizedBox(height: 12),
+            ...filteredOrders.map(buildOrderCard),
+            const Divider(height: 30),
+            const Text('➕ Add New Order',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            buildInputField('Item', itemController),
+            buildInputField('ItemName', nameController),
+            buildInputField('Price', priceController,
+                keyboardType: TextInputType.number),
+            buildInputField('Currency', currencyController),
+            buildInputField('Quantity', quantityController,
+                keyboardType: TextInputType.number),
+            const SizedBox(height: 8),
+            ElevatedButton.icon(
+              onPressed: addOrder,
+              icon: const Icon(Icons.add),
+              label: const Text('Insert Order'),
+              style: ElevatedButton.styleFrom(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                backgroundColor: Colors.blueAccent,
               ),
             ),
-            const Divider(),
-            const Text('Add New Order'),
-            TextField(controller: itemController, decoration: const InputDecoration(labelText: 'Item')),
-            TextField(controller: nameController, decoration: const InputDecoration(labelText: 'ItemName')),
-            TextField(controller: priceController, decoration: const InputDecoration(labelText: 'Price')),
-            TextField(controller: currencyController, decoration: const InputDecoration(labelText: 'Currency')),
-            TextField(controller: quantityController, decoration: const InputDecoration(labelText: 'Quantity')),
-            ElevatedButton(onPressed: addOrder, child: const Text('Insert Order')),
           ],
         ),
       ),
